@@ -80,6 +80,42 @@ async function renderImagePreview(page, preview) {
   }, preview)
 }
 
+async function dismissConsentDialog(page) {
+  const clicked = await page.evaluate(() => {
+    const preferredLabels = [
+      "reject all",
+      "reject optional",
+      "necessary only",
+      "essential only",
+      "decline all",
+      "accept all",
+      "allow all",
+    ]
+    const controls = [
+      ...document.querySelectorAll(
+        'button, [role="button"], input[type="button"], input[type="submit"]'
+      ),
+    ]
+    for (const label of preferredLabels) {
+      const control = controls.find((candidate) => {
+        const element = /** @type {HTMLElement} */ (candidate)
+        const text =
+          element.innerText ||
+          element.getAttribute("aria-label") ||
+          element.getAttribute("value") ||
+          ""
+        return text.trim().toLowerCase() === label
+      })
+      if (control instanceof HTMLElement) {
+        control.click()
+        return true
+      }
+    }
+    return false
+  })
+  if (clicked) await new Promise((resolve) => setTimeout(resolve, 400))
+}
+
 let browserPromise
 
 async function browserFor(config) {
@@ -173,6 +209,7 @@ export async function captureScreenshot(options, config) {
       if (options.waitMs) {
         await new Promise((resolve) => setTimeout(resolve, options.waitMs))
       }
+      await dismissConsentDialog(page)
 
       pageState = await page.evaluate(() => ({
         title: document.title,
