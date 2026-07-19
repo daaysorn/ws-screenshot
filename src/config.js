@@ -12,7 +12,7 @@ if (apiKey.length < 32) {
   throw new Error("API_KEY must contain at least 32 characters")
 }
 
-const allowedHosts = (process.env.ALLOWED_HOSTS ?? "tiktok.com,*.tiktok.com,dribbble.com,*.dribbble.com")
+const allowedHosts = (process.env.ALLOWED_HOSTS ?? "*")
   .split(",")
   .map((host) => host.trim().toLowerCase())
   .filter(Boolean)

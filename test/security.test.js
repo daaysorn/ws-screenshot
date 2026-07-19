@@ -43,6 +43,11 @@ describe("hostIsAllowed", () => {
     assert.equal(hostIsAllowed("tiktok.com.evil.example", rules), false)
     assert.equal(hostIsAllowed("eviltiktok.com", rules), false)
   })
+
+  test("supports any public host with an explicit wildcard", () => {
+    assert.equal(hostIsAllowed("example.com", ["*"]), true)
+    assert.equal(hostIsAllowed("cdn.somewhere.test", ["*"]), true)
+  })
 })
 
 describe("validatePublicUrl", () => {

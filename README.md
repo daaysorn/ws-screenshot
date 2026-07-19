@@ -11,7 +11,8 @@ successful results.
 ## Security model
 
 - Bearer authentication is required for every screenshot request.
-- Top-level navigation is restricted by `ALLOWED_HOSTS`.
+- Top-level navigation is controlled by `ALLOWED_HOSTS`. The default `*`
+  permits any public host while the private-network protections remain active.
 - HTTP authentication in target URLs and nonstandard ports are rejected.
 - Loopback, private, link-local, multicast, reserved, and cloud-metadata IP
   ranges are blocked after DNS resolution.
@@ -90,15 +91,16 @@ Do not place `API_KEY` in a URL or commit it to the repository.
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
 | `API_KEY` | Yes | — | Secret with at least 32 characters |
-| `ALLOWED_HOSTS` | No | `tiktok.com,*.tiktok.com,dribbble.com,*.dribbble.com` | Comma-separated top-level navigation allowlist |
+| `ALLOWED_HOSTS` | No | `*` | `*` for any public host, or a comma-separated navigation allowlist |
 | `PORT` | No | `3000` | HTTP port |
 | `MAX_CONCURRENCY` | No | `1` | Simultaneous Chromium pages, maximum 4 |
 | `NAVIGATION_TIMEOUT_MS` | No | `15000` | Navigation timeout, 3–30 seconds |
 | `MAX_BODY_BYTES` | No | `16384` | Maximum JSON body size |
 | `PUPPETEER_EXECUTABLE_PATH` | No | `/usr/bin/chromium` | Chromium executable |
 
-Host rules are exact by default. `*.tiktok.com` allows subdomains but does not
-allow `tiktok.com.evil.example`.
+Use `*` to capture any public website. For a restricted deployment, host rules
+are exact by default: `*.tiktok.com` allows subdomains but does not allow
+`tiktok.com.evil.example`. Every mode still rejects private and reserved IPs.
 
 ## Local verification
 

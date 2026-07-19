@@ -61,6 +61,7 @@ export function isPrivateAddress(address) {
 export function hostIsAllowed(hostname, allowedHosts) {
   const host = hostname.toLowerCase().replace(/\.$/, "")
   return allowedHosts.some((rule) => {
+    if (rule === "*") return true
     if (rule.startsWith("*.")) {
       const suffix = rule.slice(1)
       return host.endsWith(suffix) && host.length > suffix.length
