@@ -88,6 +88,7 @@ async function dismissConsentDialog(page) {
       "necessary only",
       "essential only",
       "decline all",
+      "decline optional cookies",
       "accept all",
       "allow all",
     ]
@@ -189,7 +190,9 @@ export async function captureScreenshot(options, config) {
       })()
     })
 
-    const useMetadataPreview = /(^|\.)tiktok\.com$/i.test(target.hostname)
+    const useMetadataPreview = /(^|\.)(?:instagram|tiktok)\.com$/i.test(
+      target.hostname
+    )
     let pageState
     if (useMetadataPreview) {
       const preview = await openGraphPreview(target, config)
