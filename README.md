@@ -107,7 +107,8 @@ are exact by default: `*.tiktok.com` allows subdomains but does not allow
 
 ## Local verification
 
-Node.js 22.12 or later is required.
+Node.js 24.15 and npm 12.0.1 or later are required. The Docker image pins both
+versions for reproducible Coolify builds.
 
 ```bash
 npm ci

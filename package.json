@@ -5,7 +5,8 @@
   "type": "module",
   "private": true,
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=24.15.0",
+    "npm": ">=12.0.1"
   },
   "scripts": {
     "start": "node src/server.js",
