@@ -1,150 +1,123 @@
-# ws-screenshot
-A simple way to take a screenshot of a website by providing its URL. ws-screenshot include a simple web UI but also a REST API and a Websocket API to automate screenshots.
+# daaysorn screenshot service
 
-DEMO: https://backup15.terasp.net/
+A small, authenticated screenshot API for generating link-preview images. It is
+intended to run as a private Coolify service and be called server-to-server by
+daaysorn.
 
-![](https://cf.appdrag.com/support-documentatio-cb1e1b/uploads/files/e76ed2f5-943e-4fac-b454-6ebb9208f7a6.gif)
+The service uses Chromium through Puppeteer, returns a viewport screenshot, and
+does not store images. The caller is responsible for validating and persisting
+successful results.
 
-&nbsp;
+## Security model
 
-# Quickstart with Docker
+- Bearer authentication is required for every screenshot request.
+- Top-level navigation is restricted by `ALLOWED_HOSTS`.
+- HTTP authentication in target URLs and nonstandard ports are rejected.
+- Loopback, private, link-local, multicast, reserved, and cloud-metadata IP
+  ranges are blocked after DNS resolution.
+- Every browser request, including redirects and page subresources, receives a
+  public-address check.
+- Dimensions, quality, wait time, body size, navigation time, concurrency, and
+  queue size are bounded.
+- Access challenges and pages without images are returned as failures instead
+  of misleading previews.
+- There is no browser UI, WebSocket API, PDF generation, arbitrary header
+  injection, cookie injection, or permissive CORS policy.
 
-Run once:
+Keep the service behind HTTPS. Do not expose the container port directly when a
+Coolify proxy is available.
 
-    docker pull elestio/ws-screenshot.slim
-    docker run -p 3000:3000 -it elestio/ws-screenshot.slim
+## API
 
-or Run as a docker service:
+### Health
 
-    docker run --name ws-screenshot -d --restart always -p 3000:3000 -it elestio/ws-screenshot.slim
-
-Then open http://yourIP:3000/ in your browser
-
-&nbsp;
-# Requirements
-
-- Linux, Windows or Mac OS
-- Node 12+
-
-## Install Node.js 16
-    sudo apt -y install curl dirmngr apt-transport-https lsb-release ca-certificates
-    curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash -
-    sudo apt -y install nodejs
-
-## Clone this repository
-Clone this repo then install NPM dependencies for ws-screenshot:
-
-    git clone git@github.com:elestio/ws-screenshot.git
-    cd ws-screenshot
-    npm install
-
-## Install required dependencies for chrome:
-
-    ./installPuppeteerNativeDeps.sh
-
-
-&nbsp;
-
-# Run ws-screenshot
-
-## Run directly
-
-Finally we can start WS-SCREENSHOT Server one-time:
-
-    ./run.sh
-
-or run as a service with pm2
-
-    npm install -g pm2
-    pm2 start run.sh --name ws-screenshot
-    pm2 save
-
-## Run with docker (local version for dev)
-Run just once
-
-    docker build -t ws-screenshot .
-    docker run --rm -p 3000:3000 -it ws-screenshot
-
-Run as a docker service
-
-    docker run --name ws-screenshot -d --restart always -p 3000:3000 -it ws-screenshot
-
-## Run on Kubernetes
-Run with helm
-
-    helm upgrade --install ws-screenshot --namespace ws-screenshot helm/
-
-## Run with proxy
-Add `PROXY_SERVER` env variable:
-
-    docker run --rm -p 3000:3000 --env PROXY_SERVER=socks5://host:port -it ws-screenshot
-
-> NOTE: Chromium ignores username and password in `--proxy-server` arg
->
-> https://bugs.chromium.org/p/chromium/issues/detail?id=615947
-
-&nbsp;
-# Usage
-
-## REST API
-
-Make a GET request (or open the url in your browser):
-
-    /api/screenshot?resX=1280&resY=900&outFormat=jpg&isFullPage=false&url=https://vms2.terasp.net&headers={"foo":"bar"}
-
-## Websocket API
-
-```js
-var event = {
-  cmd: "screenshot",
-  url: url,
-  originalTS: (+new Date()),
-  resX: resX,
-  resY: resY,
-  outFormat: outFormat,
-  isFullPage: isFullPage,
-  headers: {
-    foo: 'bar'
-  }
-};
+```http
+GET /health
 ```
 
-You can check /public/js/client.js and /public/index.html for a sample on how to call the Websocket API
+### Capture a screenshot
 
+```http
+POST /v1/screenshots
+Authorization: Bearer <API_KEY>
+Content-Type: application/json
 
-&nbsp;
-# Supported parameters
-- url: full url to screenshot, must start with http:// or https://
-- resX: integer value for screen width, default: 1280
-- resY: integer value for screen height, default: 900
-- outFormat: output format, can be jpg, png or pdf, default: jpg
-- isFullPage: true or false, indicate if we should scroll the page and make a full page screenshot, default: false
-- waitTime: integer value in milliseconds, indicate max time to wait for page resources to load, default: 100
-- headers: add extra headers to the request
-
-&nbsp;
-# Protect with an ApiKey
-
-You can protect the REST & WS APIs with an ApiKey, this is usefull if you want to protect your screenshot server from being used by anyone
-To do that, open appconfig.json and set any string like a GUID in ApiKey attribute. This will be your ApiKey to pass to REST & WS APIs
-
-To call the REST API with an ApiKey:
-
-    /api/screenshot?url=https://example.com&apiKey=XXXXXXXXXXXXX
-
-To call the Websocket API with an ApiKey:
-
-```js
-var event = {
-  cmd: "screenshot",
-  url: url,
-  originalTS: (+new Date()),
-  apiKey: "XXXXXXXXXXXXX"
-};
+{
+  "url": "https://www.tiktok.com/@creator/video/123",
+  "width": 720,
+  "height": 900,
+  "format": "webp",
+  "quality": 80,
+  "waitMs": 1500
+}
 ```
 
-You can check /public/js/client.js for a sample on how to call the Websocket API
+The response body is the image. Supported formats are `webp`, `jpeg`, and
+`png`. The defaults shown above are used when optional fields are omitted.
 
+Example:
 
-# TODO list
-- Add support for cookies / localstorage auth (to be able to screenshot authenticated pages)
+```bash
+curl --fail-with-body \
+  --request POST \
+  --header "Authorization: Bearer $API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{"url":"https://dribbble.com/shots/25762763-Comments-section-for-blog"}' \
+  --output preview.webp \
+  https://screenshots.example.com/v1/screenshots
+```
+
+## Coolify deployment
+
+1. Create a new application from this Git repository.
+2. Use the repository `Dockerfile` and expose container port `3000`.
+3. Configure `/health` as the health-check path.
+4. Add the required environment variables below.
+5. Attach an HTTPS domain, deploy, and test `/health`.
+6. Keep the Coolify resource limit conservative initially: 1 CPU and 1–2 GB
+   RAM is sufficient for `MAX_CONCURRENCY=1`.
+
+Generate the API key with:
+
+```bash
+openssl rand -hex 32
+```
+
+Do not place `API_KEY` in a URL or commit it to the repository.
+
+## Environment variables
+
+| Variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `API_KEY` | Yes | — | Secret with at least 32 characters |
+| `ALLOWED_HOSTS` | No | `tiktok.com,*.tiktok.com,dribbble.com,*.dribbble.com` | Comma-separated top-level navigation allowlist |
+| `PORT` | No | `3000` | HTTP port |
+| `MAX_CONCURRENCY` | No | `1` | Simultaneous Chromium pages, maximum 4 |
+| `NAVIGATION_TIMEOUT_MS` | No | `15000` | Navigation timeout, 3–30 seconds |
+| `MAX_BODY_BYTES` | No | `16384` | Maximum JSON body size |
+| `PUPPETEER_EXECUTABLE_PATH` | No | `/usr/bin/chromium` | Chromium executable |
+
+Host rules are exact by default. `*.tiktok.com` allows subdomains but does not
+allow `tiktok.com.evil.example`.
+
+## Local verification
+
+Node.js 22.12 or later is required.
+
+```bash
+npm ci
+npm test
+npm run check
+```
+
+Running the full API locally also requires a compatible Chromium executable:
+
+```bash
+API_KEY="$(openssl rand -hex 32)" \
+PUPPETEER_EXECUTABLE_PATH="/path/to/chromium" \
+npm start
+```
+
+## License
+
+MIT. This fork is based on `elestio/ws-screenshot` and retains its license.
