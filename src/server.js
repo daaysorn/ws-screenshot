@@ -94,7 +94,10 @@ const server = createServer(async (request, response) => {
   response.setHeader("X-Frame-Options", "DENY")
   response.setHeader("Referrer-Policy", "no-referrer")
 
-  if (request.method === "GET" && request.url === "/health") {
+  if (
+    request.method === "GET" &&
+    (request.url === "/" || request.url === "/health")
+  ) {
     return json(response, 200, { status: "ok" })
   }
   if (request.method !== "POST" || request.url !== "/v1/screenshots") {

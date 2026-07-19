@@ -36,6 +36,9 @@ Coolify proxy is available.
 GET /health
 ```
 
+`GET /` is also a health alias for deployment platforms that probe the root
+path automatically.
+
 ### Capture a screenshot
 
 ```http
